@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+  <!--
+    Adding Brandon Jones and Colin MacKenzie IV's gl-matrix library that provides easy to
+    use vector and matrix maths operations.  Source: https://github.com/toji/gl-matrix
+  -->
+  <link rel="stylesheet" href="./index.css"></script>
+ 
+  <script type="text/javascript" src="gl-matrix.js"></script>
+
+  <script type="x-shader/x-vertex" id="boundingBoxVertexSource">
+    #version 300 es
+    precision highp float;
+  
+    #line 13 // This sets the line numbers to match with the line numbers in this file
+
+    // Hard-code all of the vertices for a 6-face cube centered on 0 with a side-length of 1
+    const vec3 p0 = vec3(-1.0, -1.0, -1.0);
+    const vec3 p1 = vec3( 1.0, -1.0, -1.0);
+    const vec3 p2 = vec3( 1.0,  1.0, -1.0);
+    const vec3 p3 = vec3(-1.0,  1.0, -1.0);
+    const vec3 p4 = vec3(-1.0, -1.0,  1.0);
+    const vec3 p5 = vec3( 1.0, -1.0,  1.0);
+    const vec3 p6 = vec3( 1.0,  1.0,  1.0);
+    const vec3 p7 = vec3(-1.0,  1.0,  1.0);
+    // 6 faces * 2 triangles/face * 3 vertices/triangles = 36 vertices
+    const vec3 positions[36] = vec3[](
+      p0, p2, p1,      p0, p3, p2,   // front side
+      p1, p6, p5,      p1, p2, p6,   // right side
+      p4, p3, p0,      p4, p7, p3,   // left side
+      p4, p6, p7,      p4, p5, p6,   // back side
+      p3, p6, p2,      p3, p7, p6,   // top side
+      p1, p4, p0,      p1, p5, p4    // bottom side
+    );
+  
+    // Specifies the varying variable that stores the position of the vertex.  The value of
+    // this variable will be interpolated in the fragment shader
+    out vec3 position;
+  
+    // The model matrix specifies the transformation for the current bounding box
+    uniform mat4 modelMatrix;
+    // The view matrix specifies information about the location of the virtual camera
+    uniform mat4 viewMatrix;
+    // The projection matrix determines the projection and its parameters, like FOV
+    uniform mat4 projectionMatrix;
+  
+    void main() {
+      // gl_VertexID is a library-defined variable that corresponds to the number of the
+      // vertex for which the vertex shader is currently being evaluated
+      vec4 p = vec4(positions[gl_VertexID], 1.0);
+  
+      // gl_Position is a library-defined variable that needs to be set by the vertex shader
+      gl_Position = projectionMatrix * viewMatrix * modelMatrix * p;
+  
+      // Just passing the value along for the fragment shader to interpolate the value
+      // between the vertices
+      position = p.xyz;
+    }
+  </script>
+
+  <script type="x-shader/x-fragment" id="boundingBoxFragmentSource">
+    #version 300 es
+    // WebGL2 requires specifying the floating point precision once per program object
+    precision highp float;
+
+    #line 64 // This sets the line numbers to match with the line numbers in this file
+    // Incoming varying variable from the vertex shader
+    in vec3 position;
+
+    // Define the output variable as a vec4 (= color)
+    out vec4 out_color;
+
+    void main() {
+      // Using the position as the red and green components of the color since the positions
+      // are in [-1, 1] and the colors are in [0, 1], we need to renormalize here
+      vec3 normPos = (position + vec3(1.0)) / vec3(2.0);
+      out_color = vec4(normPos, 1.0);
+    }
+  </script>
+
+  <script type="x-shader/x-vertex" id="volumeRenderingVertexSource">
+    #version 300 es
+    // WebGL2 requires specifying the floating point precision once per program object
+    precision highp float;
+  
+    #line 84 // This sets the line numbers to match with the line numbers in this file
+    
+    const vec2 p0 = vec2(-1.0, -1.0);
+    const vec2 p1 = vec2( 1.0, -1.0);
+    const vec2 p2 = vec2( 1.0,  1.0);
+    const vec2 p3 = vec2(-1.0,  1.0);
+    // 1 quad * 2 triangles / quad * 3 vertices / triangle = 6 vertices
+    const vec2 positions[6] = vec2[](p0, p1, p2,    p0, p2, p3);
+  
+    // This varying variable represents the texture coordinates that are used for the rays
+    out vec2 st;
+  
+    void main() {
+      // gl_VertexID is a library-defined variable that corresponds to the number of the
+      // vertex for which the vertex shader is currently being evaluated
+      vec2 p = positions[gl_VertexID];
+  
+      // We can use the position here directly
+      gl_Position = vec4(p, 0.0, 1.0);
+  
+      // The positions are in range [-1, 1], but the texture coordinates should be [0, 1]
+      st = (p + vec2(1.0)) / vec2(2.0);
+    }
+  </script>
+
+  <script type="x-shader/x-fragment" id="volumeRenderingFragmentSource">
+    #version 300 es
+    // WebGL2 requires specifying the floating point precision once per program object
+    precision highp float;
+    precision highp sampler2D;
+    precision highp sampler3D;
+  
+    #line 116 // This sets the line numbers to match with the line numbers in this file
+    
+    uniform sampler2D entryPoints;  // The texture that holds the entry points
+    uniform sampler2D exitPoints;   // The texture that holds the exit points
+  
+    uniform sampler3D volume;       // The texture that holds the volume data
+    uniform sampler2D transferFunction; // The texture that holds the transfer function data
+                                        // WebGL doesn't like 1D textures, so this is a 2D
+                                        // texture that is only 1 pixel high
+    uniform float stepSize;             // The ray step size as determined by the user
+    uniform int renderType;             // The value of the 'Rendering output' parameter
+    uniform int compositingMethod;      // The value of the 'Compositing method' parameter
+  
+  
+    // Poor man's enum for the compositing methods.  If additional compositing methods are
+    // added, they have to be accounted for in the rendering function as well
+    const int CompositingMethodFrontToBack = 0;
+    const int CompositingMethodFirstHitPoint = 1;
+    const int CompositingMethodMaximumIntensityProjection = 2;
+  
+    in vec2 st; // This is the texture coordinate of the fragment that we are currently
+                // computing.  This is used to look up the entry/exit points to compute the
+                // direction of the ray
+    out vec4 out_color; // The output variable where we will store the final color that we
+                        // painstakingly raycasted
+  
+    /// This function computes the final color for the ray traversal by actually performing
+    /// the volume rendering.
+    /// @param entryCoord The coordinate where the ray enters the bounding box
+    /// @param exitCoord The coordinates where the ray exits the bounding box
+    /// @return The final color that this ray represents
+    vec4 traverseRay(vec3 entryCoord, vec3 exitCoord) 
+    {
+      vec4 result = vec4(0.0);
+     
+      vec3 rayDirection = exitCoord - entryCoord;
+      rayDirection = normalize(rayDirection);
+
+      float t = 0.0;  
+      float tEnd = length(rayDirection);
+  
+      float tIncr = stepSize;
+
+      float alphaThreshold = 0.25;
+  
+      // FRONT TO BACK
+      if (compositingMethod == CompositingMethodFrontToBack) 
+      {
+        while (t < tEnd && result.a < 0.99) 
+        {
+          vec3 sampleCoord = entryCoord + t * rayDirection;
+          float value = texture(volume, sampleCoord).r;
+          vec4 color = texture(transferFunction, vec2(value, 0.5));
+
+          if (color.a > alphaThreshold) {
+            const float ReferenceSamplingInterval = 150.0;
+            color.a = 1.0 - pow(1.0 - color.a, tIncr * ReferenceSamplingInterval);     
+
+            result.rbg += (1.0 - result.a) * color.rgb * color.a;
+            result.a += (1.0 - result.a) * color.a;
+          }
+
+          t += tIncr;
+        }
+      } 
+      // FIRST HIT-POINT
+      else if (compositingMethod == CompositingMethodFirstHitPoint) 
+      {
+        while (t < tEnd && result.a < 0.99) 
+        {
+          
+          vec3 sampleCoord = entryCoord + t * rayDirection;
+          float value = texture(volume, sampleCoord).r;
+          vec4 color = texture(transferFunction, vec2(value, 0.5));
+
+          if (color.a > alphaThreshold) {
+            result = color;
+            break;
+          }
+
+          t += tIncr;
+        }
+      }
+      // MAX INTESITY PROJECTION
+      else if (compositingMethod == CompositingMethodMaximumIntensityProjection) 
+      {
+        float alphaMax = 0.25;
+
+        while (t < tEnd && result.a < 0.99) 
+        {
+          vec3 sampleCoord = entryCoord + t * rayDirection;
+          float value = texture(volume, sampleCoord).r;
+          vec4 color = texture(transferFunction, vec2(value, 0.5));
+
+          if (color.a > alphaMax) {
+            result = color;
+            alphaMax = color.a;
+          }
+
+          t += tIncr;
+        }
+      }
+
+      // If we get here, the while loop above terminated, so we are done with the ray, so
+      // we can return the result
+      return result;
+    }
+  
+    void main() {
+      // Access the entry point texture at our current pixel location to get the entry pos
+      vec3 entryCoord = texture(entryPoints, st).rgb;
+      // Access the exit point texture at our current pixel location to get the exit pos
+      vec3 exitCoord = texture(exitPoints, st).rgb;
+  
+      // Poor man's enum for the render types.  These values should be synchronized with the
+      // render function in case any of the numbers change
+      const int RenderTypeVolumeRendering = 0;
+      const int RenderTypeEntryPoints = 1;
+      const int RenderTypeExitPoints = 2;
+      const int RenderTypeRayDirection = 3;
+      const int RenderTypeTransferFunction = 4;
+      const int RenderTypeVolumeSlice = 5;
+      const int RenderTypeVolumeSliceWithTransferFunction = 6;
+  
+      // The values that are checked against here have to be synced with the renderVolume
+      if (renderType == RenderTypeVolumeRendering) {
+        // Check for an early out. If the entry coordinate is the same as the exit
+        // coordinate then our current pixel is missing the volume, so there is no need for
+        // any ray traversal
+        if (entryCoord == exitCoord) {
+          discard;
+        }
+  
+        // Perform the raycasting using the entry and the exit pos
+        vec4 pixelColor = traverseRay(entryCoord, exitCoord);
+  
+        // As the raycasting might not return a fully opaque color (for example if the ray
+        // exits the volume without being fully saturated), we can't just assing the color,
+        // but need to mix (=lerp) it with a fully black background color
+        out_color = mix(vec4(0.0, 0.0, 0.0, 1.0), pixelColor, pixelColor.a);
+      }
+      else if (renderType == RenderTypeEntryPoints) {
+        // Just rendering the entry point coordinate back as a color
+        out_color = vec4(entryCoord, 1.0);
+      }
+      else if (renderType == RenderTypeExitPoints) {
+        // Just rendering the exit point coordinate back as a color
+        out_color = vec4(exitCoord, 1.0);
+      }
+      else if (renderType == RenderTypeRayDirection) {
+        // Render the ray direction as a color. We need to take the absolute value here as
+        // it is difficult to render negative colors
+        out_color = vec4(abs(exitCoord - entryCoord), 1.0);
+      }
+      else if (renderType == RenderTypeTransferFunction) {
+        // Render the transfer function into the viewport
+        vec4 c = texture(transferFunction, vec2(st));
+        // For the upper 80% of the viewport, just render the RGB color
+        if (st.y > 0.2) {
+          out_color = vec4(c.rgb, 1.0);
+          return;
+        }
+        // For the rest, render TF with transparency, over a checkerboard pattern
+        float nCheckers = 20.0;
+        vec2 pos = floor(st * nCheckers);
+        float patternMask = mod(pos.x + mod(pos.y, 2.0), 2.0);
+        vec4 checkerColor = patternMask * vec4(0.7, 0.7, 0.7, 1.0);
+        // Blend checkerboard pattern with TF color
+        out_color = (1.0 - c.a) * checkerColor + c.a * c;
+      }
+      else if (renderType == RenderTypeVolumeSlice) {
+        // Take a central slice of the volume and render it to the screen. This is mainly
+        // meant as a control for the next option.
+        float value = texture(volume, vec3(st, 0.5)).r;
+        out_color = vec4(value, value, value, 1.0);
+      }
+      else if (renderType == RenderTypeVolumeSliceWithTransferFunction) {
+        // Take a central slice out of the volume and render it to the screen.  Then, apply
+        // the transfer function to all pixels.  This rendering option can be used to verify
+        // that the transfer function editor works as expected before trying it on the
+        // volume rendering
+        float value = texture(volume, vec3(st, 0.5)).r;
+        vec4 c = texture(transferFunction, vec2(value, 0.5));
+        out_color = vec4(c.rgb, 1.0);
+      }
+    }
+  </script>
+
+  <!-- Main WebGL functions -->
+  <script type="text/javascript" src="index.js" defer></script>
+  <script type="text/javascript" src="nodeEditor.js" defer></script>
+  
+  <body onload="main();">
+    <div id="flexContainer">
+      <canvas id="glCanvas" width="512" height="512"></canvas>
+      <div id="settings">
+        <div class="settingsBlock"> 
+          <h2>Rendering output</h2>
+          <p><input type="radio" name="debug-output" value="volume" onchange="triggerRendering();" checked>Volume Rendering</p>
+          <p><input type="radio" name="debug-output" value="entry" onchange="triggerRendering();">Entry Points</p>
+          <p><input type="radio" name="debug-output" value="exit" onchange="triggerRendering();">Exit Points</p>
+          <p><input type="radio" name="debug-output" value="direction" onchange="triggerRendering();">Ray direction</p>
+          <p><input type="radio" name="debug-output" value="transfer" onchange="triggerRendering();">Transfer Function</p>
+          <p><input type="radio" name="debug-output" value="slice" onchange="triggerRendering();">Volume Slice</p>
+          <p><input type="radio" name="debug-output" value="slice-transfer" onchange="triggerRendering();">Volume Slice with transfer function</p>
+        </div>
+        <div class="settingsBlock">
+          <h2>Compositing method</h2>
+          <p><input type="radio" name="compositing" value="ftb" onchange="triggerRendering();" checked>Front-to-back</p>
+          <p><input type="radio" name="compositing" value="fhp" onchange="triggerRendering();">First hit-point</p>
+          <p><input type="radio" name="compositing" value="mip" onchange="triggerRendering();">Maximum-intensity projection</p>
+          <p>Step size: <input type="range" min="0" max="100" value="50" class="slider" id="stepSize" oninput="triggerRendering();"></p>
+        </div>
+        <div class="settingsBlock">
+          <h2>Camera</h2>
+          <p><span>r: </span><input type="range" min="0" max="100" value="50" class="slider" id="camera-r" oninput="triggerRendering();"></p>
+          <p>phi: <input type="range" min="0" max="360" value="35" class="slider" id="camera-phi" oninput="triggerRendering();"></p>
+          <p>theta: <input type="range" min="1" max="180" value="65" class="slider" id="camera-theta" oninput="triggerRendering();"></p>
+        </div>
+        <div class="settingsBlock">
+          <canvas id="tfCanvas" width="512" height="256"></canvas>
+          <div id="color">
+            <input type="color" id="colorPicker" name="color_1" value="rgb(256, 256, 256)" onchange="changeColor(this)"/>
+          </div>  
+          <button onclick="addNode();">+</button>
+          <button onclick="removeNode();">-</button>
+        </div>
+      </div>
+      <p id="error"></p>
+    </div>
+  </body>
+</html>
