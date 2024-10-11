@@ -169,11 +169,11 @@
           float value = texture(volume, sampleCoord).r;
           vec4 color = texture(transferFunction, vec2(value, 0.5));
 
-          if (color.a > alphaThreshold) {
+          if (color.a > 0.0) {
             const float ReferenceSamplingInterval = 150.0;
             color.a = 1.0 - pow(1.0 - color.a, tIncr * ReferenceSamplingInterval);     
 
-            result.rbg += (1.0 - result.a) * color.rgb * color.a;
+            result.rgb += (1.0 - result.a) * color.rgb * color.a;
             result.a += (1.0 - result.a) * color.a;
           }
 
@@ -185,7 +185,6 @@
       {
         while (t < tEnd && result.a < 0.99) 
         {
-          
           vec3 sampleCoord = entryCoord + t * rayDirection;
           float value = texture(volume, sampleCoord).r;
           vec4 color = texture(transferFunction, vec2(value, 0.5));

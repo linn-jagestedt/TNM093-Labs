@@ -1,0 +1,29 @@
+Our findings
+
+- Det finns något matrial med hög densitet vid föterna
+- Det finns mynt med låg densitet i grisen, kanske plast?
+- Grisen består 3 matrial. Ett yttre lager med låg densitet (lack?) och två inre lager med hög densitet (glasyr?)
+- Grisens ytre lager har ett mönster, kanske en grund färg och sedan har målat en annan färg ovanpå?
+- Det finns ett bord med låg densitet
+
+Unexpected
+
+- Mynten hade låg densistet
+- Grisen hade flera lager
+- Något av hög densitet i botten, är det lacken/färgen som runnit av och klumpat ihop?
+
+Methods
+
+- First Hitpoint
+    Tar färgen från den första punkten längs vår raycast som har ett alpha värde över en viss tröskel
+- Maximum Intensity Projection
+    Jämför alpha-värdet för alla punkter längs våran raycast och tar färgen för den punkten med högst alpha värdet
+- Front to back
+    Blandar färgerna för alla punkter längs vår raycast enligt en formel
+
+Reflection
+    Scivis visualisering är bra när man vi informationen om hur ett objekt ser ut på insidan, dvs vilka matrial den består av och hur de är komposerade. 
+    Detta är anvärdbart inom medecin då man samla få information om inre organ och benstruktur.
+    Infovis visualisering är bra för abstrakt data utan några fysikaliska samband.
+    Exempelvis är det anvärdbart för att visualisera samband inom statistik.
+    
