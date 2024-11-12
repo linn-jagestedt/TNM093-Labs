@@ -17,7 +17,7 @@ function info(data) {
 		.append('g')
 		.attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-	var file = "data/SocialScience.csv";
+	var file = "data/socialScience.csv";
 
 	d3.csv(file, function (data) {
 		var columns = ["Region", "Inkomst", "Skattesats",

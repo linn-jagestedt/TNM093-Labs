@@ -5,19 +5,28 @@ function labcode(data, x_var, y_var, sp_svg, tooltip) {
   //------------------------------------------------------------------------------------->
   /** COMPUTER EXERCISE STARTS HERE  */
   //Task 5.1.1  -- Create the x-axis
-  var x;
+  var x = d3.scaleLinear()
+    .domain([d3.min(data), d3.max(data)])
+    .range([0, 700]);
 
 
   //Task 5.1.2  -- Append the axes to the svg
-  var xAxis;
-
+  var xAxis = sp_svg.append("g")
+  .attr("transform", "translate(" + 0 + ", " + 400 + ")")
+  .call(d3.axisBottom(x));
 
   //Task 5.1.3  -- Create y-axis
-  var y;
+  var y = d3.scaleLinear()
+  .domain([d3.min(data), d3.max(data)])
+  .range([0, 400]);
+
 
 
   // Task 5.1.4 -- Append the axis to svg
-  var yAxis;
+  var yAxis = sp_svg.append("g")
+  .attr("transform", "translate(" + 0 + ", " + 0 + ")")
+  .call(d3.axisLeft(y));
+
   
 
   // Task 5.1.5 -- Append circles to svg
