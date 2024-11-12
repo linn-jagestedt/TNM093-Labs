@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+Copyright 2013, 2017, Karljohan Lundin Palmerius
+
+This is a stubb for laborations on multi-modal display
+systems in the VR laboratory. It will disable the X3D
+navigation to allow for viewpoint calibration and tracking,
+and load libraries commonly used in the VR laboratory.
+
+-->
+<Scene>
+  <Group>
+    
+    <PythonScript url="urn:candy:python/CorrectViewpoint.py"/>
+    <PythonScript url="urn:candy:python/AutoLoadSO.py"/>
+
+    <!--================!!!These ONLY work within the VR lab!!!!=================-->
+    <!-- <Inline url="urn:candy:x3d/view-untracked-stereo.x3d"/>  -->
+    <!--<Inline url="urn:candy:x3d/view-untracked-mono.x3d"/>    -->
+    <!--<Inline url="urn:candy:x3d/view-head-tracked-stereo.x3d"/>-->
+    <!--<Inline url="urn:candy:x3d/view-head-tracked-mono.x3d"/>  -->
+    <!--=========================================================================-->
+
+    <!-- Screen is at z = 0, "screenLowerLeft" and "screenUpperRight" are real word measurments -->
+    <!-- "position" is the position of the eye -->
+    <SMViewpoint position=' 0.5 0.2 1.5' screenLowerLeft='-0.265 -0.15 0.5' screenUpperRight='0.265 0.15 0.5' screenUp='0 1 0'/>
+    <SMViewpoint position='-0.5 0.2 1.5' screenLowerLeft='-0.265 -0.15 0.5' screenUpperRight='0.265 0.15 0.5' screenUp='0 1 0'/>
+
+    <MatrixTransform
+      DEF="TR">
+
+
+      <PointLight location="0.2 0.2 0.05" global="true" intensity = "0.5" ambientIntensity = "0.9"/> 
+
+      <Transform translation = '0 -0.15 0'> <!--Scene translation-->
+
+        <!-- First leg, furthest back to the left -->
+        <Transform translation = '-0.05 0 -0.05'>
+        <Shape  DEF="Leg" >
+          <Box size='0.03 0.1 0.03'/>
+            <Appearance shadow="true">                <!--Benens skugga verkar lite skuffed?-->
+                <Material diffuseColor="1.0 0.0 0.0"/>
+                <SmoothSurface stiffness="0.4"/>
+            </Appearance>
+        </Shape>
+        </Transform>
+
+        <!-- leg furthest back to the right -->
+        <Transform  translation="0.05 0 -0.05">
+            <Shape  USE="Leg"/>
+        </Transform>
+
+        <!-- leg in front to the left -->
+        <Transform  translation="-0.05 0 0.05">
+            <Shape  USE="Leg"/>
+        </Transform>
+
+        <!-- leg in front to the right -->
+        <Transform  translation="0.05 0 0.05">
+            <Shape  USE="Leg"/>
+        </Transform>
+
+        <!-- Seat -->
+        <Transform translation = '0 0.065 0'>
+          <Shape  DEF="Seat" >
+            <Box DEF="SEATBOX" size='0.13 0.03 0.13'/>
+            <Appearance shadow="true">
+                <Material DEF="SEATMATERIAL" diffuseColor="0.0 1.0 0.0"/>
+              <SmoothSurface stiffness="0.4" />
+            </Appearance>
+          </Shape>
+        </Transform>
+
+        <!-- Back support -->
+        <Transform translation = '0 0.13 -0.05'>
+          <Shape DEF="Back" >
+            <Box size='0.13 0.15 0.03'/>
+            <Appearance shadow="true">
+                <Material diffuseColor="0.0 0.0 1.0"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+
+      </Transform>
+    
+    </MatrixTransform>
+
+    <!-- Translation on click -->
+
+    <IMPORT inlineDEF="H3D_EXPORTS" exportedDEF="HDEV" AS="HDEV"/>
+
+    <PythonScript
+        DEF="MT"
+        url="urn:candy:python/ManualTranslation.py">
+      <Transform USE="TR" containerField="references"/>
+    </PythonScript>
+
+    <ROUTE 
+      fromNode="HDEV" fromField="mainButton"
+      toNode="MT" toField="button"
+    />
+
+    <ROUTE 
+      fromNode="HDEV" fromField="trackerPosition"
+      toNode="MT" toField="position"
+    />
+
+    <!-- Rotation on click -->
+
+    <PythonScript
+        DEF="MR"
+        url="urn:candy:python/ManualRotation.py">
+      <Transform USE="TR" containerField="references"/>
+    </PythonScript>
+
+    <ROUTE 
+      fromNode="HDEV" fromField="mainButton"
+      toNode="MR" toField="button"
+    />
+
+    <ROUTE 
+      fromNode="HDEV" fromField="trackerPosition"
+      toNode="MR" toField="position"
+    />
+
+    <ROUTE 
+      fromNode="HDEV" fromField="trackerOrientation"
+      toNode="MR" toField="orientation"
+    />
+
+    <!-- Color Randomizer -->
+
+    <PythonScript DEF="MFTOSFBOOL" url="urn:candy:python/MFtoSFBool.py" />
+    <PythonScript DEF="CR" url="ColorRandomizer.py"/>
+
+    <!-- MFBOOL from isTouched to value -->
+    <ROUTE 
+      fromNode="SEATBOX" fromField="isTouched"
+      toNode="MFTOSFBOOL" toField="value" 
+    />
+
+    <!-- SFBOOL from value to color -->
+    <ROUTE 
+      fromNode="MFTOSFBOOL" fromField="value"
+      toNode="CR" toField="color" 
+    />
+
+    <!-- color from color to diffuseColor -->
+    <ROUTE 
+      fromNode="CR" fromField="color" 
+      toNode="SEATMATERIAL" toField="diffuseColor"
+    />
+
+  </Group>
+</Scene>
