@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+Copyright 2013, 2017, Karljohan Lundin Palmerius
+
+This is a stubb for laborations on multi-modal display
+systems in the VR laboratory. It will disable the X3D
+navigation to allow for viewpoint calibration and tracking,
+and load libraries commonly used in the VR laboratory.
+
+-->
+<Scene>
+  <Group>
+    
+    <PythonScript url="urn:candy:python/CorrectViewpoint.py"/>
+    <PythonScript url="urn:candy:python/AutoLoadSO.py"/>
+
+    <!--================!!!These ONLY work within the VR lab!!!!=================-->
+    <!-- <Inline url="urn:candy:x3d/view-untracked-stereo.x3d"/>  -->
+    <!--<Inline url="urn:candy:x3d/view-untracked-mono.x3d"/>    -->
+    <!--<Inline url="urn:candy:x3d/view-head-tracked-stereo.x3d"/>-->
+    <!--<Inline url="urn:candy:x3d/view-head-tracked-mono.x3d"/>  -->
+    <!--=========================================================================-->
+
+    <!-- Screen is at z = 0, "screenLowerLeft" and "screenUpperRight" are real word measurments -->
+    <!-- "position" is the position of the eye -->
+    <SMViewpoint position=' 0.5 0.2 1.5' screenLowerLeft='-0.265 -0.15 0.5' screenUpperRight='0.265 0.15 0.5' screenUp='0 1 0'/>
+    <SMViewpoint position='-0.5 0.2 1.5' screenLowerLeft='-0.265 -0.15 0.5' screenUpperRight='0.265 0.15 0.5' screenUp='0 1 0'/>
+
+    <MatrixTransform
+      DEF="TR">
+      <VRSound location="-1 0 0" spatialize="true"> 
+        <ReverbSoundEffect parametersPreset="CONCERTHALL"/>
+        <AudioClip DEF="NOICE" url="./sound/ljud-bonk-6.wav" loop="false"/>
+      </VRSound>
+
+      <VRSound location="0 -1 0" spatialize="true"> 
+        <ReverbSoundEffect parametersPreset="CONCERTHALL"/>
+          <AudioClip DEF="NOICE2" url="./sound/ljud-bonk-1.wav" loop="false"/>
+      </VRSound> 
+
+      <PointLight location= "0.2 0.2 0.2" global="true" intensity = "0.5" ambientIntensity = "0.9"/> 
+
+      <Transform translation = '0 -0.15 0'> <!--Scene translation-->
+
+        <!--Background Wall-->
+        <Transform translation="0 0.17 -0.1">
+          <Shape DEF="Wall">
+            <Appearance>
+               <FrictionalSurface useRelativeValues="false" stiffness="800" damping="0" dynamicFriction="0.2" staticFriction="0"/>
+              <ImageTexture url="./wall.jpg"/>
+            </Appearance>
+            <Box DEF="wallbox" size="1 0.5 0.1"/>
+          </Shape>
+        </Transform>
+
+        <!--Floor Surface-->
+        <!--<Transform translation="0 -0.065 0.25" rotation = "0 1 0 1.570796">-->
+        <Transform translation="0 -0.065 0.2" >
+          <Shape DEF="Floor">
+            <Appearance>
+               <FrictionalSurface useRelativeValues="false" stiffness="600" damping="0" dynamicFriction="0.4" staticFriction="0"/>
+              <ImageTexture url="./floor.jpg"/>
+            </Appearance>
+            <Box DEF="floorbox" size="1 0.03 0.5"/>
+          </Shape>
+        </Transform>
+          
+
+          <!-- First leg, furthest back to the left -->
+        <Transform translation = '-0.05 0 -0.05'>
+          <Shape DEF="Leg" >
+            <Box size='0.03 0.1 0.03'/>
+            <Appearance shadow="true">          
+              <Material DEF="LEGMATERIAL" diffuseColor="1.0 0.4 0.4" specularColor="1.0 1.0 1.0" shininess="0.8"/>
+               <FrictionalSurface useRelativeValues="false" stiffness="400" damping="1" dynamicFriction="1" staticFriction="1"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+
+        <!-- leg furthest back to the right -->
+        <Transform  translation="0.05 0 -0.05">
+          <Shape>
+            <Box size='0.03 0.1 0.03'/>
+            <Appearance shadow="true">              
+              <Material USE="LEGMATERIAL"/>
+               <FrictionalSurface useRelativeValues="false" stiffness="100" damping="5"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+
+        <!-- leg in front to the left -->
+        <Transform  translation="-0.05 0 0.05">
+          <Shape>
+            <Box size='0.03 0.1 0.03'/>
+            <Appearance shadow="true">                
+              <Material USE="LEGMATERIAL"/>
+               <FrictionalSurface useRelativeValues="false" stiffness="100" damping="2" dynamicFriction="0" staticFriction="1"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+
+        <!-- leg in front to the right -->
+        <Transform  translation="0.05 0 0.05">
+          <Shape>
+            <Box size='0.03 0.1 0.03'/>
+            <Appearance shadow="true">                
+              <Material USE="LEGMATERIAL"/>
+               <FrictionalSurface useRelativeValues="false" stiffness="100" damping="2" dynamicFriction="1" staticFriction="0"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+
+        <!-- Seat -->
+        <Transform translation = '0 0.065 0'>
+          <Shape  DEF="Seat" >
+            <Box DEF="SEATBOX" size='0.13 0.03 0.13'/>
+            <Appearance shadow="true">
+              <Material DEF="SEATMATERIAL" diffuseColor="0.0 1.0 0.0" specularColor="1.0 1.0 1.0" shininess="0.5"/>
+               <FrictionalSurface useRelativeValues="false" stiffness="10" damping="5" dynamicFriction="0.4" staticFriction="0"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+
+        <!-- Back support -->
+        <Transform translation = '0 0.13 -0.05'>
+          <Shape DEF="Back" >
+            <Box DEF="BACKREST" size='0.13 0.15 0.03'/>
+            <Appearance shadow="true">
+              <Material diffuseColor="0.0 0.0 1.0"/>
+               <FrictionalSurface useRelativeValues="false" stiffness="500" damping="5"/>
+            </Appearance>
+          </Shape>
+        </Transform>
+      </Transform>
+    </MatrixTransform>
+
+    <!-- Translation on click -->
+
+    <IMPORT inlineDEF="H3D_EXPORTS" exportedDEF="HDEV" AS="HDEV"/>
+
+    <PythonScript
+        DEF="MT"
+        url="urn:candy:python/ManualTranslation.py">
+      <Transform USE="TR" containerField="references"/>
+    </PythonScript>
+
+    <ROUTE 
+      fromNode="HDEV" fromField="mainButton"
+      toNode="MT" toField="button"
+    />
+
+    <ROUTE 
+      fromNode="HDEV" fromField="trackerPosition"
+      toNode="MT" toField="position"
+    />
+
+    <!-- Rotation on click -->
+
+    <PythonScript
+        DEF="MR"
+        url="urn:candy:python/ManualRotation.py">
+      <Transform USE="TR" containerField="references"/>
+    </PythonScript>
+
+    <ROUTE 
+      fromNode="HDEV" fromField="mainButton"
+      toNode="MR" toField="button"
+    />
+
+    <ROUTE 
+      fromNode="HDEV" fromField="trackerPosition"
+      toNode="MR" toField="position"
+    />
+
+    <ROUTE 
+      fromNode="HDEV" fromField="trackerOrientation"
+      toNode="MR" toField="orientation"
+    />
+
+    <!--=============== Color Randomizer ===============-->
+
+    <PythonScript DEF="MFTOSFBOOL" url="urn:candy:python/MFtoSFBool.py" />
+    <PythonScript DEF="CR" url="ColorRandomizer.py"/>
+
+    <!-- MFBOOL from isTouched to value -->
+    <ROUTE 
+      fromNode="SEATBOX" fromField="isTouched"
+      toNode="MFTOSFBOOL" toField="value" 
+    />
+
+    <!-- SFBOOL from value to color -->
+    <ROUTE 
+      fromNode="MFTOSFBOOL" fromField="value"
+      toNode="CR" toField="color" 
+    />
+
+    <!-- color from color to diffuseColor -->
+    <ROUTE 
+      fromNode="CR" fromField="color" 
+      toNode="SEATMATERIAL" toField="diffuseColor"
+    />
+
+    <!--=============== Sound emitters ===============-->
+   
+    <PythonScript DEF="MF2SF2" url="urn:candy:python/MFtoSFBool.py" />
+    <TimeTrigger DEF='TIMETRIG' />
+    <BooleanFilter DEF='BOOLF' />
+
+    <ROUTE 
+      fromNode="SEATBOX" fromField="isTouched"
+      toNode="MF2SF2" toField="value"
+    />
+
+    <ROUTE 
+      fromNode="MF2SF2" fromField="value"
+      toNode="BOOLF" toField="set_boolean"
+    />
+
+    <ROUTE fromNode="BOOLF" fromField="inputTrue"
+      toNode="TIMETRIG" toField="set_boolean"
+    />   
+          
+   <ROUTE 
+      fromNode="TIMETRIG" fromField="triggerTime"
+      toNode="NOICE" toField="startTime"
+    />  
+
+    <!--Second sound-->
+    <PythonScript DEF="MF2SF3" url="urn:candy:python/MFtoSFBool.py" />
+    <TimeTrigger DEF='TIMETRIG2' />
+    <BooleanFilter DEF='BOOLF2' />
+
+    <ROUTE 
+      fromNode="floorbox" fromField="isTouched"
+      toNode="MF2SF3" toField="value"
+    />
+
+    <ROUTE 
+      fromNode="MF2SF3" fromField="value"
+      toNode="BOOLF2" toField="set_boolean"
+    />
+
+    <ROUTE fromNode="BOOLF2" fromField="inputTrue"
+      toNode="TIMETRIG2" toField="set_boolean"
+    />   
+          
+   <ROUTE 
+      fromNode="TIMETRIG2" fromField="triggerTime"
+      toNode="NOICE2" toField="startTime"
+    />  
+
+  </Group>
+</Scene>
