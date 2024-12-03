@@ -62,6 +62,8 @@ function initializeGrid() {
         forces.push(forceRow);
     }
 
+    svg.selectAll("*").remove();
+
     drawEdges();
     drawNodes();
 }
@@ -92,10 +94,6 @@ function drawNodes() {
 function drawEdges() 
 {
     const linesData = [];
-
-    //
-    // Add all the points as links to linePositions
-    //
 
     for (let i = 0; i < rows; i++) 
     {
@@ -136,10 +134,6 @@ function drawEdges()
     }
 
     const lineGenerator = d3.line();
-
-    // 
-    // Add links ass paths to svg
-    //
 
     const lines = svg.selectAll("path").data(linesData);
     
@@ -266,6 +260,10 @@ function updatePositionsEuler()
     {
         for (let j = 0; j < cols; j++) 
         {
+            if (i == selectedRow && j == selectedCol) {
+                continue;
+            }
+ 
             velocities[i][j][0] += timeStep * (forces[i][j][0] / mass);
             velocities[i][j][1] += timeStep * (forces[i][j][1] / mass);
 
@@ -284,12 +282,19 @@ function updatePositionsVerlet()
     {
         for (let j = 0; j < cols; j++) 
         {
-            let lastPos = positions[i][j]; // n
+            if (i == selectedRow && j == selectedCol) {
+                continue;
+            }
 
-            positions[i][j][0] = 2 * positions[i][j][0] - lastPositions[i][j][0] + (forces[i][j][0] / mass) * timeStep * timeStep; // n + 1
-            positions[i][j][1] = 2 * positions[i][j][1] - lastPositions[i][j][1] + (forces[i][j][1] / mass) * timeStep * timeStep; // n + 1
+            let currentPos = positions[i][j];
+
+            positions[i][j][0] = 2 * positions[i][j][0] - lastPositions[i][j][0] + (forces[i][j][0] / mass) * timeStep * timeStep;
+            positions[i][j][1] = 2 * positions[i][j][1] - lastPositions[i][j][1] + (forces[i][j][1] / mass) * timeStep * timeStep;
         
-            lastPositions[i][j] = lastPos; // n - 1
+            velocities[i][j][0] = (1 / (2 * timeStep)) * (positions[i][j][0] - lastPositions[i][j][0])
+            velocities[i][j][1] = (1 / (2 * timeStep)) * (positions[i][j][1] - lastPositions[i][j][1])
+        
+            lastPositions[i][j] = currentPos;
         }
     }
 
