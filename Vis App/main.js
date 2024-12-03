@@ -22,7 +22,8 @@ let rows = parseInt(document.getElementById("rows").value, 10);
 let cols = parseInt(document.getElementById("cols").value, 10);
 let restoreForce = parseFloat(document.getElementById("restore-force").value);
 let damping = parseFloat(document.getElementById("damping").value);
-const nodeRadius = 15;
+const nodeRadius = 40;
+const lineThickness = 8;
 const timeStep = 0.16;
 const padding = 50;
 const mass = 2;
@@ -37,11 +38,27 @@ let velocities = [];
 let forces = [];
 let isRunning = false;
 
+var gradient = svg.append("defs").append("radialGradient")
+.attr("id", "mygrad")//id of the gradient
+.attr("cx", "25%")
+.attr("cy", "25%");
+
+gradient.append("stop")
+.attr("offset", "0%")
+.style("stop-color", "#40a9f9")//end in red
+.style("stop-opacity", 1);
+
+gradient.append("stop")
+.attr("offset", "100%")
+.style("stop-color", "#000972")//start in blue
+.style("stop-opacity", 1);
+
 /**
  * Initialize the grid with nodes and reset their positions, velocities, and forces.
  */
 function initializeGrid() {
     positions = [];
+    lastPositions = [];
     velocities = [];
     forces = [];
     xStep = (width - 2 * padding) / (cols - 1);
@@ -62,8 +79,6 @@ function initializeGrid() {
         forces.push(forceRow);
     }
 
-    svg.selectAll("*").remove();
-
     drawEdges();
     drawNodes();
 }
@@ -81,9 +96,7 @@ function drawNodes() {
         .merge(nodes)
         .attr("cx", (d) => d[0])
         .attr("cy", (d) => d[1])
-        .attr("fill", "blue")
-        .attr("stroke", "white")
-        .attr("stroke-width", 2);
+        .attr("fill", "url(#mygrad)")
 
     nodes.exit().remove();
 }
@@ -93,58 +106,77 @@ function drawNodes() {
  */
 function drawEdges() 
 {
-    const linesData = [];
+    const structuralLinesData = [];
 
     for (let i = 0; i < rows; i++) 
     {
         for (let j = 0; j < cols; j++) 
         {
-            // Right
+            // Down
             if (i < rows - 1) {
-                linesData.push([
+                structuralLinesData.push([
                     positions[i + 0][j],
                     positions[i + 1][j]
                 ]);
             }
 
-            // Upp
+            // Right
             if (j < cols - 1) {
-                linesData.push([
+                structuralLinesData.push([
                     positions[i][j + 0],
                     positions[i][j + 1]
-                ]);
-            }
-
-            // Left Down
-            if (j > 0 && i < rows - 1) {
-                linesData.push([
-                    positions[i + 0][j],
-                    positions[i + 1][j - 1]
-                ]);
-            }
-
-            //Right down
-            if (j < cols - 1 && i < rows - 1) {
-                linesData.push([
-                    positions[i + 0][j],
-                    positions[i + 1][j + 1]
                 ]);
             }
         }
     }
 
-    const lineGenerator = d3.line();
+    const shearLinesData = [];
 
-    const lines = svg.selectAll("path").data(linesData);
+    for (let i = 0; i < rows; i++) 
+        {
+            for (let j = 0; j < cols; j++) 
+            {
+                // Left Down
+                if (j > 0 && i < rows - 1) {
+                    shearLinesData.push([
+                        positions[i + 0][j],
+                        positions[i + 1][j - 1]
+                    ]);
+                }
     
-    lines
-        .enter()
-        .append("path")
-        .merge(lines)
+                // Right down
+                if (j < cols - 1 && i < rows - 1) {
+                    shearLinesData.push([
+                        positions[i + 0][j],
+                        positions[i + 1][j + 1]
+                    ]);
+                }
+            }
+        }
+
+    const lineGenerator = d3.line();
+    
+    const structuralLines = svg.select("#structuralLines");    
+
+    structuralLines
+        .selectAll("path")
+        .data(structuralLinesData)
+        .join("path")
         .attr("d", lineGenerator)
         .attr("fill", "none")
         .attr("stroke", "black")
-        .attr("thickness", 10);
+        .attr("stroke-width", lineThickness);
+    
+    const shearLines = svg.select("#shearLines");
+
+    shearLines
+        .selectAll("path")
+        .data(shearLinesData)
+        .join("path")
+        .attr("d", lineGenerator)
+        .attr("fill", "none")
+        .attr("stroke", "#1661bc")
+        .attr("stroke-width", lineThickness);
 }
 
 /**
