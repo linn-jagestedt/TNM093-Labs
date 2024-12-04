@@ -207,6 +207,10 @@ function initializeGrid()
         forces.push(forceRow);
     }
 
+    svg.select("#structuralLines").selectAll("path").remove();
+    svg.select("#shearLines").selectAll("path").remove();
+    svg.selectAll("circle").remove();
+
     drawEdges();
     drawNodes();
 }
@@ -217,16 +221,26 @@ function initializeGrid()
 
 function drawNodes() 
 {
-    const nodes = svg.selectAll("circle");
+    let radius = 12 * nodeRadius / ((rows + cols)) / 2;
     
+    // Bind data
+    const nodes = svg.selectAll("circle").data(positions.flat());
+
+    // Init
     nodes
-        .data(positions.flat())
-        .join("circle")
-        .attr("r", nodeRadius)
+        .enter()
+        .append("circle")
+        .attr("r", radius)
         .attr("cx", (d) => d[0])
         .attr("cy", (d) => d[1])
-        .attr("fill", "url(#mygrad)")
+        .attr("fill", "url(#mygrad)");
+    
+    // Update
+    nodes
+        .attr("cx", (d) => d[0])
+        .attr("cy", (d) => d[1]);
 
+    // Clear
     nodes.exit().remove();
 }
 
@@ -274,27 +288,49 @@ function drawEdges()
         }
     }
 
+    let thickness = 12 * lineThickness / ((rows + cols)) / 2;
+
     const lineGenerator = d3.line();
     
-    const structuralLines = svg.select("#structuralLines");    
-
-    structuralLines
+    // Bind data
+    const structuralLines = svg
+        .select("#structuralLines")
         .selectAll("path")
-        .data(structuralLinesData)
-        .join("path")
+        .data(structuralLinesData);    
+
+    // Init
+    structuralLines
+        .enter()
+        .append("path")
         .attr("d", lineGenerator)
         .attr("stroke", "black")
-        .attr("stroke-width", lineThickness);
+        .attr("stroke-width", thickness);
     
-    const shearLines = svg.select("#shearLines");
+    // Update
+    structuralLines.attr("d", lineGenerator);
 
-    shearLines
+    // Clear
+    structuralLines.exit().remove();
+
+    // Bind data
+    const shearLines = svg
+        .select("#shearLines")
         .selectAll("path")
-        .data(shearLinesData)
-        .join("path")
+        .data(shearLinesData);
+    
+    // Init
+    shearLines
+        .enter()
+        .append("path")
         .attr("d", lineGenerator)
         .attr("stroke", "#1661bc")
-        .attr("stroke-width", lineThickness);
+        .attr("stroke-width", thickness);
+    
+    // Update
+    shearLines.attr("d", lineGenerator);
+    
+    // Clear
+    shearLines.exit().remove();
 }
 
 /*
