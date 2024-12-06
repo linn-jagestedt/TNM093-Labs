@@ -45,16 +45,16 @@
         <input id="restore-force" type="range" min="0" max="1" step="0.01" value="0.5">
         
         <label for="damping">Damping:</label>
-        <input id="damping" type="range" min="0" max="1" step="0.01" value="0.5">
-  
-        <label for="time-step">Time step:</label>
-        <input id="time-step" type="range" min="0" max="0.3" step="0.01" value="0.16">
+        <input id="damping" type="range" min="0.01" max="1" step="0.01" value="0.5">
+        <p>Frametime: <span id="frame-time"></span>ms</p>
       </div>
     </div>
     <main >
       <svg id="simulation-area" width="800" height="800">
         <g id="structuralLines"></g>
         <g id="shearLines"></g>
+        <g id="circles"></g>
+        <g id="cursor"></g>
       </svg>
     </main>
   </div>
